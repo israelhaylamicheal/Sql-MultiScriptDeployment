@@ -6,7 +6,7 @@ WRITE-HOST "Begin deployment..|"  $(Get-Date).ToString("MM-dd-yyyy hh:mm:ss.fff"
 WRITE-HOST "----------------------------------------------------------------------" -ForegroundColor DarkYellow
 
 $sqlConn = New-Object System.Data.SqlClient.SqlConnection
-$sqlConn.ConnectionString = "Server=PRODSQL01;Initial Catalog=AdminDB;Integrated Security=true"
+$sqlConn.ConnectionString = "Server=<serverName hosting the distribution list database>;Initial Catalog=<distribution list database name>;Integrated Security=true"
 
 try{
     $sqlConn.Open() 
@@ -29,7 +29,7 @@ try{
     $NumberOfInstances = (($data.Tables[0].Rows.SqlInstance | Select-Object -Unique)).Count
     $NumberofDatabases = ($data.Tables[0].Rows.DatabaseName.Count)
 
-    WRITE-HOST "Distribution list read into DataSet." 
+    WRITE-HOST "Distribution list read into cache." 
         
     WRITE-HOST "Number of Sql Server Instances:".PadRight(30) $NumberOfInstances
     WRITE-HOST "Number of Databases:".PadRight(30) $NumberofDatabases
