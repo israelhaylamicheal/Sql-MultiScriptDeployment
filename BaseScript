@@ -1,0 +1,89 @@
+CLEAR-HOST
+
+$dir =  Resolve-Path C:\ReleaseScripts\*.sql 
+
+WRITE-HOST "Begin deployment..|"  $(Get-Date).ToString("MM-dd-yyyy hh:mm:ss.fff")   -ForegroundColor Green
+WRITE-HOST "----------------------------------------------------------------------" -ForegroundColor DarkYellow
+
+$sqlConn = New-Object System.Data.SqlClient.SqlConnection
+$sqlConn.ConnectionString = "Server=PRODSQL01;Initial Catalog=AdminDB;Integrated Security=true"
+
+try{
+    $sqlConn.Open() 
+
+    $sqlcmd = New-Object System.Data.SqlClient.SqlCommand
+    $sqlcmd.Connection = $sqlConn
+    $query = "SELECT [SqlInstance], [DatabaseName], TcpPort
+	          FROM [dbo].[database_server] 
+	          WHERE Environment = 'PROD' AND IsActive = 1"
+    $sqlcmd.CommandText = $query
+        
+    $adp = New-Object System.Data.SqlClient.SqlDataAdapter $sqlcmd
+
+    $data = New-Object System.Data.DataSet
+           
+    $adp.Fill($data) | Out-Null
+
+    $sqlConn.Close()
+
+    $NumberOfInstances = (($data.Tables[0].Rows.SqlInstance | Select-Object -Unique)).Count
+    $NumberofDatabases = ($data.Tables[0].Rows.DatabaseName.Count)
+
+    WRITE-HOST "Distribution list read into DataSet." 
+        
+    WRITE-HOST "Number of Sql Server Instances:".PadRight(30) $NumberOfInstances
+    WRITE-HOST "Number of Databases:".PadRight(30) $NumberofDatabases
+    WRITE-HOST "----------------------------------------------------------------------"
+}      
+
+catch [Exception]{
+    WRITE-HOST "Error!" $_.Exception.Message -ErrorAction Stop  -ForegroundColor Red                                                                   
+} 
+
+ finally{
+         if($sqlConn.State -eq $sqlConn.Open){
+             $sqlConn.Close()
+         }
+ }
+
+  
+for($i=0; $i -lt $data.Tables[0].Rows.Count; $i++){   
+       
+    $SqlInstance = $data.Tables[0].Rows[$i].SqlInstance
+    $Database = $data.Tables[0].Rows[$i].DatabaseName
+    $TcpPort = $data.Tables[0].Rows[$i].TcpPort
+    $FQN = "$SqlInstance,$TcpPort"
+        
+    WRITE-HOST "Script deployment to $FQN,$Database started ..." 
+                                      
+    try{                   
+        forEach($file in $dir)
+        {                          
+            INVOKE-SQLCMD -InputFile $file.Path.ToString() -ServerInstance  $FQN -Database $Database -ErrorAction Stop -Verbose -QueryTimeout 1800  
+            WRITE-HOST "The script "$file.Path.ToString().PadRight(50) "has been deployed to database "$Database.ToString().Padright(10) $(Get-Date).ToString("MM-dd-yyyy hh:mm:ss.fff") -ForegroundColor Green
+            #START-SLEEP -s 0.1                        
+        }   
+                
+        WRITE-HOST "Script deployment to $FQN,$Database completed."
+        WRITE-HOST "----------------------------------------------------------------------"                                   
+    }
+                
+    Catch [Exception]{
+        WRITE-HOST " Error message " `n  $_.Exception.Message.Tostring() `n "Script file:" $file `n "SQL instance:" $FQN `n "Database:" $Database  -ForegroundColor Red 
+        if($Error.Count -gt 0){
+            BREAK
+        }                     
+    }          
+                          
+    finally{
+        $adp.Dispose()                                       
+    } 
+}
+                         
+WRITE-HOST "End deployment ...|"  $(Get-Date).ToString("MM-dd-yyyy hh:mm:ss.fff")    -ForegroundColor Green 
+WRITE-HOST "----------------------------------------------------------------------"  -ForegroundColor DarkYellow
+
+       
+    
+
+
