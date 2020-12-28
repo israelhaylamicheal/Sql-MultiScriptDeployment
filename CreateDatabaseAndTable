@@ -1,0 +1,22 @@
+
+Create DATABASE [AdminDB]
+GO
+
+USE [AdminDB]
+GO
+
+CREATE TABLE [dbo].[database_server2](
+	[RecordId] [int] IDENTITY(1,1) PRIMARY KEY CLUSTERED CONSTRAINT PK_RecordId NOT NULL,
+	[SqlInstance] [varchar](55) NOT NULL,
+	[DatabaseName] [varchar](50) NOT NULL,
+	[Environment] [varchar](10) NOT NULL,
+	[IsActive] [bit] NOT NULL,
+	[TcpPort] [int] NOT NULL
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[database_server] ADD  DEFAULT ((1)) FOR [IsActive]
+GO
+
+ALTER TABLE [dbo].[database_server] ADD  DEFAULT ((1433)) FOR [TcpPort]
+GO
