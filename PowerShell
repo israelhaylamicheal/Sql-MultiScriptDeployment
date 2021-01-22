@@ -41,7 +41,7 @@ catch [Exception]{
 } 
 
  finally{
-         if($sqlConn.State -eq $sqlConn.Open){
+         if($sqlConn.State -eq "Open"){
              $sqlConn.Close()
          }
  }
